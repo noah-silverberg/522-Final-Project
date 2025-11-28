@@ -1,9 +1,11 @@
 """
 ResNet implementation as described in Deep Residual Learning for Image Recognition by He et al.
 """
-# TODO: add dropout -- we need to figure out exactly where in the network we want dropout
-#       also what type of dropout (Dropout2d vs. dropconnect, etc.) -- probably dropout2d since using CNN
-#       (probably everything except stem & classifier?)
+# Dropout design:
+# - Use Dropout2d (spatial dropout) inside the residual blocks.
+# - Apply dropout after the first BN+ReLU, before the second conv.
+# - No dropout in stem or classifier by default.
+# - Global control with `dropout_p` passed to CifarResNet and BasicBlock.
 
 import torch
 import torch.nn as nn
@@ -11,7 +13,14 @@ import torch.nn.functional as F
 
 def conv3x3(in_channels, out_channels, stride=1):
     """3x3 convolution with padding"""
-    return nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+    return nn.Conv2d(
+        in_channels,
+        out_channels,
+        kernel_size=3,
+        stride=stride,
+        padding=1,
+        bias=False
+    )
 
 class OptionAShortcut(nn.Module):
     """
@@ -38,21 +47,36 @@ class OptionAShortcut(nn.Module):
         return x_strided
 
 class BasicBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1):
+    def __init__(self, in_channels, out_channels, stride=1, dropout_p=0.0):
         super().__init__()
-        self.conv1 = conv3x3(in_channels, out_channels, stride) # We only downsample (if at all) in the first conv
+        # We only downsample (if at all) in the first conv
+        self.conv1 = conv3x3(in_channels, out_channels, stride)
         self.bn1   = nn.BatchNorm2d(out_channels)
         self.conv2 = conv3x3(out_channels, out_channels, 1)
         self.bn2   = nn.BatchNorm2d(out_channels)
 
-        if stride != 1 or in_channels != out_channels: # if dimensions change, use Option A shortcut
+        # Dropout2d inside the residual block
+        if dropout_p > 0.0:
+            self.dropout = nn.Dropout2d(p=dropout_p)
+        else:
+            self.dropout = nn.Identity()
+
+        # Shortcut: Option A if shape changes, identity otherwise
+        if stride != 1 or in_channels != out_channels:
             self.shortcut = OptionAShortcut(in_channels, out_channels, stride)
         else:
             self.shortcut = nn.Identity()
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = F.relu(out)
+
+        # Apply spatial dropout after first activation
+        out = self.dropout(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
         
         # Residual addition
         out += self.shortcut(x)
@@ -65,12 +89,13 @@ class CifarResNet(nn.Module):
     """
     Stage widths: 16 -> 32 -> 64. Global average pool -> linear(num_classes).
     """
-    def __init__(self, n=3, num_classes=10):
+    def __init__(self, n=3, num_classes=10, dropout_p=0.0):
         super().__init__()
 
         self.in_channels = 16
+        self.dropout_p = dropout_p
         
-        # conv + BN + ReLU
+        # Stem: conv + BN + ReLU (no dropout here by default)
         self.stem = nn.Sequential(
             conv3x3(3, 16, 1),
             nn.BatchNorm2d(16),
@@ -82,7 +107,7 @@ class CifarResNet(nn.Module):
         self.layer2 = self._make_layer(32, n, stride=2)
         self.layer3 = self._make_layer(64, n, stride=2)
 
-        # Classifier: avg + flatten + FC
+        # Classifier: avg + flatten + FC (no dropout here by default)
         self.classifier = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
@@ -99,11 +124,13 @@ class CifarResNet(nn.Module):
 
     def _make_layer(self, out_channels, blocks, stride):
         """Creates a stack of n residual blocks."""
-        layers = [BasicBlock(self.in_channels, out_channels, stride=stride)]
+        layers = [BasicBlock(self.in_channels, out_channels,
+                             stride=stride, dropout_p=self.dropout_p)]
         self.in_channels = out_channels
 
         for _ in range(1, blocks):
-            layers.append(BasicBlock(self.in_channels, out_channels, stride=1))
+            layers.append(BasicBlock(self.in_channels, out_channels,
+                                     stride=1, dropout_p=self.dropout_p))
 
         return nn.Sequential(*layers)
 
@@ -115,8 +142,17 @@ class CifarResNet(nn.Module):
         return self.classifier(x)
 
 # Convenience constructors (n -> depth = 6n+2)
-def resnet20(num_classes=10):  return CifarResNet(n=3,  num_classes=num_classes)
-def resnet32(num_classes=10):  return CifarResNet(n=5,  num_classes=num_classes)
-def resnet44(num_classes=10):  return CifarResNet(n=7,  num_classes=num_classes)
-def resnet56(num_classes=10):  return CifarResNet(n=9,  num_classes=num_classes)
-def resnet110(num_classes=10): return CifarResNet(n=18, num_classes=num_classes)
+def resnet20(num_classes=10, dropout_p=0.0):
+    return CifarResNet(n=3,  num_classes=num_classes, dropout_p=dropout_p)
+
+def resnet32(num_classes=10, dropout_p=0.0):
+    return CifarResNet(n=5,  num_classes=num_classes, dropout_p=dropout_p)
+
+def resnet44(num_classes=10, dropout_p=0.0):
+    return CifarResNet(n=7,  num_classes=num_classes, dropout_p=dropout_p)
+
+def resnet56(num_classes=10, dropout_p=0.0):
+    return CifarResNet(n=9,  num_classes=num_classes, dropout_p=dropout_p)
+
+def resnet110(num_classes=10, dropout_p=0.0):
+    return CifarResNet(n=18, num_classes=num_classes, dropout_p=dropout_p)
