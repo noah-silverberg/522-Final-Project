@@ -65,14 +65,14 @@ class CifarResNet(nn.Module):
     """
     Stage widths: 16 -> 32 -> 64. Global average pool -> linear(num_classes).
     """
-    def __init__(self, n=3, num_classes=10, p=0.0):
+    def __init__(self, n=3, num_classes=10, in_channels=3, p=0.0):
         super().__init__()
 
         self.in_channels = 16
         
         # conv + BN + ReLU
         self.stem = nn.Sequential(
-            conv3x3(3, 16, 1),
+            conv3x3(in_channels, 16, 1),
             nn.BatchNorm2d(16),
             nn.ReLU()
         )
@@ -114,8 +114,8 @@ class CifarResNet(nn.Module):
         return self.classifier(x)
 
 # Convenience constructors (n -> depth = 6n+2)
-def resnet20(num_classes=10, p=0.0):  return CifarResNet(n=3,  num_classes=num_classes, p=p)
-def resnet32(num_classes=10, p=0.0):  return CifarResNet(n=5,  num_classes=num_classes, p=p)
-def resnet44(num_classes=10, p=0.0):  return CifarResNet(n=7,  num_classes=num_classes, p=p)
-def resnet56(num_classes=10, p=0.0):  return CifarResNet(n=9,  num_classes=num_classes, p=p)
-def resnet110(num_classes=10, p=0.0): return CifarResNet(n=18, num_classes=num_classes, p=p)
+def resnet20(num_classes=10, in_channels=3, p=0.0):  return CifarResNet(n=3,  num_classes=num_classes, in_channels=in_channels, p=p)
+def resnet32(num_classes=10, in_channels=3, p=0.0):  return CifarResNet(n=5,  num_classes=num_classes, in_channels=in_channels, p=p)
+def resnet44(num_classes=10, in_channels=3, p=0.0):  return CifarResNet(n=7,  num_classes=num_classes, in_channels=in_channels, p=p)
+def resnet56(num_classes=10, in_channels=3, p=0.0):  return CifarResNet(n=9,  num_classes=num_classes, in_channels=in_channels, p=p)
+def resnet110(num_classes=10, in_channels=3, p=0.0): return CifarResNet(n=18, num_classes=num_classes, in_channels=in_channels, p=p)
