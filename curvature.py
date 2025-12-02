@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-import copy
+from utils import evaluate_model
 
 def vector_to_parameters(vec, parameters):
     """
@@ -47,23 +47,10 @@ def get_loss_samples(model, data_loader, training_velocity, alphas=[1.0, 5.0, 10
     
     # Determine the list of radii to sample
     radii = [training_velocity * a for a in alphas]
-    
-    # Helper to calculate loss over the loader
-    def evaluate_loss_on_loader(m, loader):
-        total_loss = 0.0
-        total_count = 0
-        for inputs, targets in loader:
-            inputs, targets = inputs.to(device), targets.to(device)
-            outputs = m(inputs)
-            loss = criterion(outputs, targets)
-            # accumulate sum of losses
-            total_loss += loss.item() * inputs.size(0)
-            total_count += inputs.size(0)
-        return total_loss / total_count if total_count > 0 else 0.0
 
     with torch.no_grad():
         # Calculate loss at the exact minima (center) over dataset
-        base_loss = evaluate_loss_on_loader(model, data_loader)
+        base_loss = evaluate_model(model, data_loader, criterion, device=device)[1]
         
         # Record the center point (radius 0)
         results.append({
@@ -97,7 +84,7 @@ def get_loss_samples(model, data_loader, training_velocity, alphas=[1.0, 5.0, 10
                 vector_to_parameters(perturbed_params, model.parameters())
                 
                 # 4. Compute Loss
-                loss = evaluate_loss_on_loader(model, data_loader)
+                loss = evaluate_model(model, data_loader, criterion, device=device)[1]
                 
                 # Store result
                 results.append({

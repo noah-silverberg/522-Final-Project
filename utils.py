@@ -1,0 +1,40 @@
+import torch
+
+def evaluate_model(model, loader, criterion, device='cuda'):
+    """
+    Evaluates the model on a dataset.
+    """
+    model = model.to(device)
+    model.eval()
+    
+    test_loss = 0.0
+    correct = 0
+    total = 0
+    
+    with torch.no_grad():
+        for inputs, targets in loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+
+            test_loss += loss.item() * inputs.size(0)
+            _, predicted = outputs.max(1)
+            total += targets.size(0)
+            correct += predicted.eq(targets).sum().item()
+
+    acc = 100. * correct / total
+    avg_loss = test_loss / total
+    
+    print(f"Test Set -> Loss: {avg_loss:.4f} | Acc: {acc:.2f}%")
+    return acc, avg_loss
+
+def save_checkpoint(model, history, path):
+    """
+    Saves model state and training history.
+    """
+    state = {
+        'model_state': model.state_dict(),
+        'history': history
+    }
+    torch.save(state, path)
+    print(f"Checkpoint saved to {path}")
