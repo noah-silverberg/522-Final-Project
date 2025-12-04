@@ -217,7 +217,7 @@ def compute_diffusion_curvature_metric(P, degrees, t=8, aperture=20, smoothing=T
     
     # --- 2. Thresholding (Replicating Paper Heuristic) ---
     # Set diffusion probability thresholds by sampling 100 points
-    sample_indices = np.random.choice(N, size=100, replace=False)
+    sample_indices = np.random.choice(N, size=min(100, N), replace=False)
     thresholds = []
     
     for idx in sample_indices:

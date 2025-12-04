@@ -31,11 +31,6 @@ def run_experiment(dataset='cifar10', epochs=20, seeds=[1, 2]):
     results = {} # To store all metrics
     
     # Curvature Sampling Settings
-    # Note: 'training_velocity' determines the radius. 
-    # In a full implementation, this should be calculated dynamically: 
-    # velocity = (loss_t - loss_{t-1}) / ||params_t - params_{t-1}||
-    # For now, we set a reasonable fixed value as a placeholder.
-    training_velocity = 0.05 # TODO calcuate this
     alphas = [10., 12., 14., 16., 18.]
     samples_per_scale = 200
     
@@ -67,26 +62,33 @@ def run_experiment(dataset='cifar10', epochs=20, seeds=[1, 2]):
             # 3. Train
             model, history = train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs=epochs, device=device)
             
-            # 4. Evaluate Generalization
+            # 4. Save Checkpoint
+            ckpt_name = f"checkpoints/resnet20_p{p}_s{seed}.pth"
+            save_checkpoint(model, history, ckpt_name)
+
+            # Get the velocity from the final epoch of training
+            final_velocity = history['velocities'][-1]
+            if np.isclose(final_velocity, 0.0):
+                raise ValueError("Final training velocity is zero, cannot proceed with curvature sampling.")
+            
+            print(f"Dynamic Training Velocity Calculated: {final_velocity:.4f}")
+            
+            # 5. Evaluate Generalization
             acc, test_loss = evaluate_model(model, test_loader, criterion, device=device)
             
-            # 5. Analyze Curvature
+            # 6. Analyze Curvature
             print("Sampling curvature (this may take a while)...")
             # Note: We pass 'train_loader' to evaluate curvature on the training set landscape.
             samples = get_loss_samples(
                 model, 
                 train_loader, 
-                training_velocity=training_velocity, 
+                training_velocity=final_velocity,
                 alphas=alphas, 
                 samples_per_scale=samples_per_scale, 
                 device=device
             )
             
             curvature_metrics = compute_curvature(samples)
-            
-            # 6. Save Checkpoint
-            ckpt_name = f"checkpoints/resnet20_p{p}_s{seed}.pth"
-            save_checkpoint(model, history, ckpt_name)
             
             # Record Data
             run_data = {
