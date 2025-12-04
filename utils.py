@@ -7,7 +7,7 @@ def evaluate_model(model, loader, criterion, device='cuda'):
     model = model.to(device)
     model.eval()
     
-    test_loss = 0.0
+    total_loss = 0.0
     correct = 0
     total = 0
     
@@ -17,15 +17,15 @@ def evaluate_model(model, loader, criterion, device='cuda'):
             outputs = model(inputs)
             loss = criterion(outputs, targets)
 
-            test_loss += loss.item() * inputs.size(0)
+            total_loss += loss.item() * inputs.size(0)
             _, predicted = outputs.max(1)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
 
     acc = 100. * correct / total
-    avg_loss = test_loss / total
+    avg_loss = total_loss / total
     
-    print(f"Test Set -> Loss: {avg_loss:.4f} | Acc: {acc:.2f}%")
+    print(f"Data Set -> Loss: {avg_loss:.4f} | Acc: {acc:.2f}%")
     return acc, avg_loss
 
 def save_checkpoint(model, history, path):
