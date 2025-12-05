@@ -35,8 +35,9 @@ def get_data_loaders(dataset_name='cifar10', batch_size=128, val_split=0.1, num_
         std  = (0.30810776,)
         
         train_transform = transforms.Compose([
-            transforms.Grayscale(),
+            #transforms.Grayscale(),
             transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.repeat(3, 1, 1)),  #pearl added for resnet format
             transforms.Normalize(mean, std),
         ])
         
