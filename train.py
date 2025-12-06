@@ -4,8 +4,9 @@ import time
 import copy
 import tqdm
 import numpy as np
+import os
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler=None, epochs=50, device='cuda'):
+def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler=None, epochs=50, device='cuda', save_path=None):
     """
     Trains the model with the provided optimizer, loss function, and scheduler.
     
@@ -18,11 +19,20 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         scheduler: (Optional) Learning rate scheduler object.
         epochs: Number of epochs to train.
         device: 'cuda' or 'cpu'.
+        save_path: Path to save/load model checkpoint. If None, no saving/loading.
         
     Returns:
         model: The trained model (final state, to analyze the specific minima reached).
         history: A dictionary containing 'train_loss', 'val_loss', 'train_acc', 'val_acc'.
     """
+    # Check if we already trained this model
+    if save_path and os.path.exists(save_path):
+        print(f"Loading existing model from {save_path}")
+        checkpoint = torch.load(save_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model = model.to(device)
+        return model, checkpoint['history']
+    
     model = model.to(device)
     
     # Dictionary to track metrics
@@ -131,5 +141,14 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
     total_time = time.time() - start_time
     print(f"Training complete in {total_time // 60:.0f}m {total_time % 60:.0f}s")
+
+    # Save after training
+    if save_path:
+        os.makedirs(os.path.dirname(save_path) if os.path.dirname(save_path) else '.', exist_ok=True)
+        torch.save({
+            'model_state_dict': model.state_dict(),
+            'history': history
+        }, save_path)
+        print(f"Model saved to {save_path}")
     
     return model, history

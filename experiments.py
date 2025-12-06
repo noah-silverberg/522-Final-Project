@@ -48,10 +48,10 @@ def run_experiment(dataset='cifar10', epochs=20, seeds=[1, 2]):
             print(f"--- Seed {seed} ---")
             set_seed(seed)
             
-            # 1. Load Data
+            # Load Data
             train_loader, val_loader, test_loader = get_data_loaders(dataset, batch_size=128)
             
-            # 2. Initialize Model
+            # Initialize Model
             model = resnet20(num_classes=10, in_channels=3 if dataset == 'cifar10' else 1, p=p)
 
             # Setup Training Objects
@@ -59,13 +59,10 @@ def run_experiment(dataset='cifar10', epochs=20, seeds=[1, 2]):
             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 15], gamma=0.1)
             criterion = nn.CrossEntropyLoss()
             
-            # 3. Train
-            model, history = train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs=epochs, device=device)
+            # Train
+            ckpt_name = f"checkpoints/resnet20_{dataset}_p{p}_s{seed}.pth"
+            model, history = train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs=epochs, device=device, save_path=ckpt_name)
             
-            # 4. Save Checkpoint
-            ckpt_name = f"checkpoints/resnet20_p{p}_s{seed}.pth"
-            save_checkpoint(model, history, ckpt_name)
-
             # Get the velocity from the final epoch of training
             final_velocity = history['velocities'][-1]
             if np.isclose(final_velocity, 0.0):
@@ -73,10 +70,10 @@ def run_experiment(dataset='cifar10', epochs=20, seeds=[1, 2]):
             
             print(f"Dynamic Training Velocity Calculated: {final_velocity:.4f}")
             
-            # 5. Evaluate Generalization
+            # Evaluate Generalization
             acc, test_loss = evaluate_model(model, test_loader, criterion, device=device)
             
-            # 6. Analyze Curvature
+            # Analyze Curvature
             print("Sampling curvature (this may take a while)...")
             # Note: We pass 'train_loader' to evaluate curvature on the training set landscape.
             samples = get_loss_samples(
