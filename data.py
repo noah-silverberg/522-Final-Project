@@ -30,18 +30,16 @@ def get_data_loaders(dataset_name='cifar10', batch_size=128, val_split=0.1, num_
         test_set  = datasets.CIFAR10(root=data_root, train=False, download=True, transform=test_transform)
 
     elif dataset_name == 'mnist':
-        # MNIST is 1 channel, ResNet expects 3 usually. We can duplicate channels.
+        # MNIST is 1 channel
         mean = (0.13066062,)
         std  = (0.30810776,)
         
         train_transform = transforms.Compose([
-            transforms.Grayscale(),
             transforms.ToTensor(),
             transforms.Normalize(mean, std),
         ])
         
         test_transform = transforms.Compose([
-            transforms.Grayscale(),
             transforms.ToTensor(),
             transforms.Normalize(mean, std),
         ])
