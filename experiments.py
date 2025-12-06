@@ -94,8 +94,8 @@ def run_experiment(dataset='cifar10', epochs=20, seeds=[1, 2]):
                 'test_acc': acc,
                 'test_loss': test_loss,
                 'diffusion_curvature': curvature_metrics['diffusion_curvature'],
-                'ollivier_ricci': curvature_metrics['ollivier_ricci', 0],
-                'loss_variance': curvature_metrics['loss_variance', 0]
+                'ollivier_ricci': curvature_metrics['ollivier_ricci'],
+                'loss_variance': curvature_metrics['loss_variance']
             }
             results[p].append(run_data)
             
