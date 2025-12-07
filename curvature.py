@@ -121,8 +121,10 @@ def get_graph_operators(samples, alpha=1.0, mode='adaptive', fixed_sigma=1.0, k=
         P: Row-normalized diffusion matrix (numpy array).
         D: Distance matrix (numpy array).
     """
-    # 1. Extract perturbation vectors to form the point cloud matrix X
-    X = np.vstack([s['perturbation'] for s in samples])
+    # 1. Form Point Cloud Matrix X (with added loss dimension)
+    X_params = np.vstack([s['perturbation'] for s in samples]) # Extract perturbation vectors to form the point cloud matrix
+    losses = np.array([s['loss'] for s in samples]).reshape(-1, 1)
+    X = np.hstack([X_params, losses])  # Augment with loss dimension
     
     # 2. Compute pairwise Euclidean distances
     D = cdist(X, X, metric='euclidean')
