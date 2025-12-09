@@ -35,23 +35,37 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         model = model.to(device)
         return model, checkpoint['history']
     
+    # Look for existing checkpoint to resume training
+    for epoch in range(epochs, 0, -1):
+        if save_path and os.path.exists(save_path + f'_epoch{epoch}.pth'):
+            print(f"Resuming training from checkpoint {save_path}_epoch{epoch}.pth")
+            checkpoint = torch.load(save_path + f'_epoch{epoch}.pth')
+            model.load_state_dict(checkpoint['model_state_dict'])
+            if scheduler and checkpoint['scheduler_state_dict']:
+                scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+            if optimizer and checkpoint['optimizer_state_dict']:
+                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            prev_params = checkpoint.get('prev_params', None)
+            prev_loss = checkpoint.get('prev_loss', None)
+            start_epoch = epoch
+            history = checkpoint['history']
+            break
+    else:
+        start_epoch = 0
+        history = {
+            'train_loss': [], 'train_acc': [],
+            'val_loss': [],   'val_acc': [],
+            'velocities': []
+        }
+        prev_params = None
+        prev_loss = None
+    
     model = model.to(device)
     
-    # Dictionary to track metrics
-    history = {
-        'train_loss': [], 'train_acc': [],
-        'val_loss': [],   'val_acc': [],
-        'velocities': []
-    }
-    
-    print(f"Starting training on {device} for {epochs} epochs...")
+    print(f"Starting training on {device} for {epochs} epochs starting from epoch {start_epoch}...")
     start_time = time.time()
 
-    # Initialize previous state variables
-    prev_params = None
-    prev_loss = None
-
-    for epoch in tqdm.tqdm(range(epochs), desc="Training Epochs"):
+    for epoch in tqdm.tqdm(range(start_epoch, epochs), desc="Training Epochs"):
         # We grab the current state as a flat vector
         current_params = torch.nn.utils.parameters_to_vector(model.parameters()).detach().clone()
         
@@ -140,6 +154,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                 'model_state_dict': model.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict() if scheduler else None,
                 'optimizer_state_dict': optimizer.state_dict(),
+                'prev_params': prev_params,
+                'prev_loss': prev_loss,
                 'history': history
             }, save_path + f'_epoch{epoch+1}.pth')
             print(f"Model checkpoint saved to {save_path}_epoch{epoch+1}.pth")
@@ -162,6 +178,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             'model_state_dict': model.state_dict(),
             'scheduler_state_dict': scheduler.state_dict() if scheduler else None,
             'optimizer_state_dict': optimizer.state_dict(),
+            'prev_params': prev_params,
+            'prev_loss': prev_loss,
             'history': history
         }, save_path + f'_epoch{epochs}.pth')
         print(f"Model saved to {save_path}_epoch{epochs}.pth")
