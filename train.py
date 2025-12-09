@@ -6,7 +6,7 @@ import tqdm
 import numpy as np
 import os
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler=None, epochs=50, device='cuda', save_path=None):
+def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler=None, epochs=50, device='cuda', save_path=None, save_every=5):
     """
     Trains the model with the provided optimizer, loss function, and scheduler.
     
@@ -20,15 +20,17 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         epochs: Number of epochs to train.
         device: 'cuda' or 'cpu'.
         save_path: Path to save/load model checkpoint. If None, no saving/loading.
+            e.g., 'checkpoints/model' will save to 'checkpoints/model_epoch{epoch}.pth'.
+        save_every: Save the model every 'save_every' epochs.
         
     Returns:
         model: The trained model (final state, to analyze the specific minima reached).
         history: A dictionary containing 'train_loss', 'val_loss', 'train_acc', 'val_acc'.
     """
     # Check if we already trained this model
-    if save_path and os.path.exists(save_path):
-        print(f"Loading existing model from {save_path}")
-        checkpoint = torch.load(save_path)
+    if save_path and os.path.exists(save_path + f'_epoch{epochs}.pth'):
+        print(f"Loading existing model from {save_path}_epoch{epochs}.pth")
+        checkpoint = torch.load(save_path + f'_epoch{epochs}.pth')
         model.load_state_dict(checkpoint['model_state_dict'])
         model = model.to(device)
         return model, checkpoint['history']
@@ -131,6 +133,17 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         if scheduler:
             scheduler.step()
 
+        # Save checkpoint every 'save_every' epochs
+        if save_path and (epoch + 1) % save_every == 0:
+            os.makedirs(os.path.dirname(save_path) if os.path.dirname(save_path) else '.', exist_ok=True)
+            torch.save({
+                'model_state_dict': model.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict() if scheduler else None,
+                'optimizer_state_dict': optimizer.state_dict(),
+                'history': history
+            }, save_path + f'_epoch{epoch+1}.pth')
+            print(f"Model checkpoint saved to {save_path}_epoch{epoch+1}.pth")
+
         # Logging
         if (epoch + 1) % 5 == 0 or epoch == 0:
             # Print latest velocity if available
@@ -147,8 +160,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         os.makedirs(os.path.dirname(save_path) if os.path.dirname(save_path) else '.', exist_ok=True)
         torch.save({
             'model_state_dict': model.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict() if scheduler else None,
+            'optimizer_state_dict': optimizer.state_dict(),
             'history': history
-        }, save_path)
-        print(f"Model saved to {save_path}")
+        }, save_path + f'_epoch{epochs}.pth')
+        print(f"Model saved to {save_path}_epoch{epochs}.pth")
     
     return model, history
