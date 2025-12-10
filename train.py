@@ -5,6 +5,7 @@ import copy
 import tqdm
 import numpy as np
 import os
+from torch.amp import autocast, GradScaler
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler=None, epochs=50, device='cuda', save_path=None, save_every=5):
     """
@@ -30,7 +31,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     # Check if we already trained this model
     if save_path and os.path.exists(save_path + f'_epoch{epochs}.pth'):
         print(f"Loading existing model from {save_path}_epoch{epochs}.pth")
-        checkpoint = torch.load(save_path + f'_epoch{epochs}.pth')
+        checkpoint = torch.load(save_path + f'_epoch{epochs}.pth', weights_only=False, map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
         model = model.to(device)
         return model, checkpoint['history']
@@ -39,13 +40,22 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     for epoch in range(epochs, 0, -1):
         if save_path and os.path.exists(save_path + f'_epoch{epoch}.pth'):
             print(f"Resuming training from checkpoint {save_path}_epoch{epoch}.pth")
-            checkpoint = torch.load(save_path + f'_epoch{epoch}.pth')
+            checkpoint = torch.load(save_path + f'_epoch{epoch}.pth', weights_only=False, map_location=device)
             model.load_state_dict(checkpoint['model_state_dict'])
             if scheduler and checkpoint['scheduler_state_dict']:
                 scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
             if optimizer and checkpoint['optimizer_state_dict']:
                 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                
+                # Manually move optimizer state to the active device
+                for state in optimizer.state.values():
+                    for k, v in state.items():
+                        if isinstance(v, torch.Tensor):
+                            state[k] = v.to(device)
+                            
             prev_params = checkpoint.get('prev_params', None)
+            if prev_params is not None:
+                prev_params = prev_params.to(device)
             prev_loss = checkpoint.get('prev_loss', None)
             start_epoch = epoch
             history = checkpoint['history']
@@ -65,6 +75,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     print(f"Starting training on {device} for {epochs} epochs starting from epoch {start_epoch}...")
     start_time = time.time()
 
+    scaler = GradScaler(device)
+
     for epoch in tqdm.tqdm(range(start_epoch, epochs), desc="Training Epochs"):
         # We grab the current state as a flat vector
         current_params = torch.nn.utils.parameters_to_vector(model.parameters()).detach().clone()
@@ -79,10 +91,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             inputs, targets = inputs.to(device), targets.to(device)
             
             optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
-            loss.backward()
-            optimizer.step()
+            with autocast(device):
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+            
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             
             running_loss += loss.item() * inputs.size(0)
             _, predicted = outputs.max(1)
