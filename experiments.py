@@ -5,7 +5,8 @@ import os
 import json
 
 # Import your modules
-from resnet import resnet20, resnet32, resnet44, resnet56, resnet110
+from loss_landscape_master.cifar10.models.resnet import resnet20, resnet32, resnet44, resnet56, resnet110
+from loss_landscape_master.cifar10.models.mnist import mlpmnist
 from data import get_data_loaders
 from train import train_model
 from utils import evaluate_model
@@ -56,6 +57,10 @@ def run_experiment(dataset='cifar10', network='resnet110', epochs=200, seeds=[36
                 model = resnet56(num_classes=10, in_channels=3 if dataset == 'cifar10' else 1, p=p)
             elif network == 'resnet110':
                 model = resnet110(num_classes=10, in_channels=3 if dataset == 'cifar10' else 1, p=p)
+            elif network == 'mlpmnist':
+                model = mlpmnist(p=p)
+            else:
+                raise ValueError(f"Unknown network architecture: {network}")
 
             # Setup Training Objects
             optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
