@@ -18,7 +18,7 @@ def set_seed(seed=42):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def run_experiment(dataset='cifar10', network='resnet110', epochs=200, seeds=[36, 84, 68, 79, 11, 82, 77, 31, 26, 18], dropout_rates=[0.0, 0.1, 0.2, 0.3, 0.4], alphas=[1., 3., 5., 7., 10., 13., 16., 20.], samples_per_scale=100, skip_curvature=False, results_filename='experiment_results.json'):
+def run_experiment(dataset='cifar10', network='resnet110', epochs=200, save_every=10, seeds=[36, 84, 68, 79, 11, 82, 77, 31, 26, 18], dropout_rates=[0.0, 0.1, 0.2, 0.3, 0.4], alphas=[1., 3., 5., 7., 10., 13., 16., 20.], samples_per_scale=100, skip_curvature=False, results_filename='experiment_results.json'):
     """
     Runs the full experiment: 
     1. Loop over dropout rates.
@@ -33,7 +33,7 @@ def run_experiment(dataset='cifar10', network='resnet110', epochs=200, seeds=[36
     os.makedirs('checkpoints', exist_ok=True)
     os.makedirs('results', exist_ok=True)
 
-    print(f"Running Experiment on {dataset} with model {network} for {epochs} epochs, dropouts {dropout_rates}, alphas {alphas}, and samples per scale {samples_per_scale}")
+    print(f"Running Experiment on {dataset} with model {network} for {epochs} epochs, saving checkpoints every {save_every} epochs, dropouts {dropout_rates}, alphas {alphas}, and samples per scale {samples_per_scale}")
 
     for p in dropout_rates:
         results[p] = []
@@ -69,7 +69,7 @@ def run_experiment(dataset='cifar10', network='resnet110', epochs=200, seeds=[36
             
             # Train
             ckpt_name = f"checkpoints/{network}_{dataset}_p{p}_s{seed}"
-            model, history = train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs=epochs, device=device, save_path=ckpt_name)
+            model, history = train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs=epochs, device=device, save_path=ckpt_name, save_every=save_every)
             
             # Get the velocity from the final epoch of training
             final_velocity = history['velocities'][-1]
@@ -119,4 +119,5 @@ def run_experiment(dataset='cifar10', network='resnet110', epochs=200, seeds=[36
     print(f"\nExperiments Complete. Results saved to results/{results_filename}")
 
 if __name__ == "__main__":
-    run_experiment(dataset='cifar10', epochs=20, seeds=[42])
+    pass
+    # run_experiment(dataset='cifar10', epochs=20, seeds=[42])
