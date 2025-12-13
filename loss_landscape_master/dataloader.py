@@ -56,8 +56,6 @@ def load_dataset(dataset='cifar10', datapath='cifar10/data', batch_size=128, \
         
         testset = torchvision.datasets.CIFAR10(root=data_folder, train=False,
                                                download=False, transform=transform)
-        test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
-                                                  shuffle=False, num_workers=threads)
         
     elif dataset == 'mnist':
         # Stats from your data.py
@@ -80,6 +78,9 @@ def load_dataset(dataset='cifar10', datapath='cifar10/data', batch_size=128, \
         # Load MNIST Training Set
         trainset = torchvision.datasets.MNIST(root=data_folder, train=True,
                                             download=True, transform=transform)
+        # Load MNIST Test Set
+        testset = torchvision.datasets.MNIST(root=data_folder, train=False,
+                                            download=True, transform=transform)
         
     # If data_split>1, then randomly select a subset of the data. E.g., if datasplit=3, then
     # randomly choose 1/3 of the data.
@@ -101,6 +102,9 @@ def load_dataset(dataset='cifar10', datapath='cifar10/data', batch_size=128, \
         kwargs = {'num_workers': threads, 'pin_memory': True}
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                                     shuffle=False, **kwargs)
+
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
+                                                shuffle=False, num_workers=threads)
 
     return train_loader, test_loader
 
