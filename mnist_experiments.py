@@ -1,6 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch
+import os
+
+#can remove if unwanted
+SAVE_DIR = "./mnist_runs"
+os.makedirs(SAVE_DIR, exist_ok=True)
+
 
 from data import get_data_loaders
 from train import train_model
@@ -21,6 +28,7 @@ def run_mnist_mlp_experiments(epochs=50):
     )
 
     dropout_values = [0.0, 0.1, 0.2, 0.3, 0.5]
+
     all_results = []
 
     for p in dropout_values:
@@ -68,6 +76,19 @@ def run_mnist_mlp_experiments(epochs=50):
             f"Test acc={test_acc:.2f}"
         )
 
+        save_path = os.path.join(SAVE_DIR, f"mnist_mlp_dropout_{p:.1f}.pt")
+        torch.save(
+            {
+                "dropout": p,
+                "model_state_dict": model.state_dict(),
+                "history": history,
+                "test_acc": test_acc,
+            },
+            save_path,
+        )
+        print(f"Saved checkpoint to {save_path}")
+
+
         all_results.append({
             "dropout": p,
             "best_epoch": best_epoch,
@@ -77,7 +98,6 @@ def run_mnist_mlp_experiments(epochs=50):
         })
 
     return all_results
-
 
 if __name__ == "__main__":
     run_mnist_mlp_experiments()
