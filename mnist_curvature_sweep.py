@@ -38,15 +38,14 @@ ALPHA_SETS = {
 SAMPLES_PER_SCALE_VALUES = [10, 50, 100]
 
 
-def load_checkpoint(dropout, epoch):
+def load_checkpoint(cfg):
     """
-    Adjust this to match Noah's filename pattern/output format.
-    Example assumes something like:
-      mnist_dropout_0.2_epoch15.pt
+    Load a checkpoint matching Noah's filename pattern, e.g.
+    mlpmnist_mnist_p0.2_s11_epoch15.pth
     """
     fname = f"mlpmnist_mnist_p{cfg['p_str']}_s{cfg['seed']}_epoch{cfg['epoch']}.pth"
     path = os.path.join(CHECKPOINT_ROOT, fname)
-    print("Loading:", path)  # helpful debug line
+    print("Loading:", path)
     ckpt = torch.load(path, map_location=DEVICE)
     return ckpt
 
