@@ -1,6 +1,7 @@
 import os
 import torch, torchvision
 import cifar10.models.resnet as resnet
+import cifar10.models.mnist as mnist
 
 # map between model name and function
 models = {
@@ -9,6 +10,7 @@ models = {
     'resnet44'              : resnet.resnet44,
     'resnet56'              : resnet.resnet56,
     'resnet110'             : resnet.resnet110,
+    'mlpmnist'              : mnist.mlpmnist,
 }
 
 def load(model_name, model_file=None, data_parallel=False):

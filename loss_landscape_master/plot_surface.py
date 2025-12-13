@@ -165,7 +165,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', default=128, type=int, help='minibatch size')
 
     # data parameters
-    parser.add_argument('--dataset', default='cifar10', help='cifar10 | imagenet')
+    parser.add_argument('--dataset', default='cifar10', help='cifar10 | imagenet | mnist')
     parser.add_argument('--datapath', default='cifar10/data', metavar='DIR', help='path to the dataset')
     parser.add_argument('--raw_data', action='store_true', default=False, help='no data preprocessing')
     parser.add_argument('--data_split', default=1, type=int, help='the number of splits for the dataloader')
@@ -275,6 +275,9 @@ if __name__ == '__main__':
     # download CIFAR10 if it does not exit
     if rank == 0 and args.dataset == 'cifar10':
         torchvision.datasets.CIFAR10(root=args.dataset + '/data', train=True, download=True)
+
+    elif rank == 0 and args.dataset == 'mnist':
+        torchvision.datasets.MNIST(root=args.dataset + '/data', train=True, download=True)
 
     mpi.barrier(comm)
 
