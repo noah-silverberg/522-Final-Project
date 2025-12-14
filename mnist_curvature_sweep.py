@@ -22,7 +22,7 @@ RESULTS_CSV = os.path.join(RESULTS_DIR, "mnist_curvature_sweep_large.csv")
 # Dropout + epoch + seed pairs (using seed 11 for all)
 MNIST_CONFIGS = [
     {"p": 0.0, "p_str": "0.0", "epoch": 10, "seed": 11},
-    {"p": 0.1, "p_str": "0.1", "epoch": 20, "seed": 11},
+    {"p": 0.1, "p_str": "0.1", "epoch": 15, "seed": 11},
     {"p": 0.3, "p_str": "0.3", "epoch": 20, "seed": 11},
     {"p": 0.5, "p_str": "0.5", "epoch": 20, "seed": 11},
 ]
