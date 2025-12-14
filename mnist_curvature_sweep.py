@@ -17,25 +17,24 @@ CHECKPOINT_ROOT = "/content/drive/MyDrive/third year/Geometry and topology in ML
 # Where to save curvature results (also in Drive, same project folder)
 RESULTS_DIR = "/content/drive/MyDrive/third year/Geometry and topology in ML/final project/curvature_results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
-RESULTS_CSV = os.path.join(RESULTS_DIR, "mnist_curvature_sweep.csv")
+RESULTS_CSV = os.path.join(RESULTS_DIR, "mnist_curvature_sweep_large.csv")
 
 # Dropout + epoch + seed pairs (using seed 11 for all)
 MNIST_CONFIGS = [
     {"p": 0.0, "p_str": "0.0", "epoch": 10, "seed": 11},
-    {"p": 0.1, "p_str": "0.1", "epoch": 15, "seed": 11},
-    {"p": 0.2, "p_str": "0.2", "epoch": 15, "seed": 11},
+    {"p": 0.1, "p_str": "0.1", "epoch": 20, "seed": 11},
     {"p": 0.3, "p_str": "0.3", "epoch": 20, "seed": 11},
-    {"p": 0.4, "p_str": "0.4", "epoch": 20, "seed": 11},
+    {"p": 0.5, "p_str": "0.5", "epoch": 20, "seed": 11},
 ]
+
+SAMPLES_PER_SCALE_VALUES = [50]
+
 
 # Alpha sets 
 ALPHA_SETS = {
-    "small": [1, 2, 3, 4, 5],
-    "big": [10, 12, 14, 16, 18],
-    "mixed": [1, 5, 10, 15, 20],
+    "far":      [100, 120, 140, 160, 180],
+    "very_far": [1000, 1200, 1400, 1600, 2000],
 }
-
-SAMPLES_PER_SCALE_VALUES = [10, 50, 100]
 
 
 def load_checkpoint(cfg):
