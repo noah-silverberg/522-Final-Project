@@ -23,9 +23,12 @@ RESULTS_CSV = os.path.join(RESULTS_DIR, "mnist_curvature_sweep_large.csv")
 MNIST_CONFIGS = [
     {"p": 0.0, "p_str": "0.0", "epoch": 10, "seed": 11},
     {"p": 0.1, "p_str": "0.1", "epoch": 15, "seed": 11},
+    {"p": 0.2, "p_str": "0.2", "epoch": 15, "seed": 11},
     {"p": 0.3, "p_str": "0.3", "epoch": 20, "seed": 11},
-    {"p": 0.5, "p_str": "0.5", "epoch": 20, "seed": 11},
+    {"p": 0.4, "p_str": "0.4", "epoch": 20, "seed": 11},
+    # no 0.5 because there’s no p0.5 checkpoint in Drive yet
 ]
+
 
 SAMPLES_PER_SCALE_VALUES = [50]
 
