@@ -79,45 +79,45 @@ def run_experiment(dataset='cifar10', network='resnet110', epochs=200, save_ever
             print(f"Dynamic Training Velocity Calculated: {final_velocity:.4f}")
             
             # Evaluate Generalization
-            acc, test_loss = evaluate_model(model, test_loader, criterion, device=device)
-            
-            if skip_curvature:
-                continue
+            train_acc, train_loss = evaluate_model(model, train_loader, criterion, device=device)
+            test_acc, test_loss = evaluate_model(model, test_loader, criterion, device=device)
 
-            # Analyze Curvature
-            print("Sampling curvature (this may take a while)...")
-            # Note: We pass 'train_loader' to evaluate curvature on the training set landscape.
-            samples = get_loss_samples(
-                model, 
-                train_loader, 
-                training_velocity=final_velocity,
-                alphas=alphas, 
-                samples_per_scale=samples_per_scale, 
-                device=device
-            )
-            
-            curvature_metrics = compute_curvature(samples)
-            
-            # Record Data
             run_data = {
                 'seed': seed,
                 'dropout_p': p,
-                'test_acc': acc,
-                'test_loss': test_loss,
-                'diffusion_curvature': curvature_metrics['diffusion_curvature'],
-                'ollivier_ricci': curvature_metrics['ollivier_ricci'],
-                'loss_variance': curvature_metrics['loss_variance']
+                'train_acc': train_acc,
+                'train_loss': train_loss,
+                'test_acc': test_acc,
+                'test_loss': test_loss
             }
+            
+            if not skip_curvature:
+                # Analyze Curvature
+                print("Sampling curvature (this may take a while)...")
+                # Note: We pass 'train_loader' to evaluate curvature on the training set landscape.
+                samples = get_loss_samples(
+                    model, 
+                    train_loader, 
+                    training_velocity=final_velocity,
+                    alphas=alphas, 
+                    samples_per_scale=samples_per_scale, 
+                    device=device
+                )
+                
+                curvature_metrics = compute_curvature(samples)
+
+                run_data.update({
+                    'diffusion_curvature': curvature_metrics['diffusion_curvature'],
+                    'ollivier_ricci': curvature_metrics['ollivier_ricci'],
+                    'loss_variance': curvature_metrics['loss_variance']
+                })
+
             results[p].append(run_data)
             
-            print(f"Result: Acc={acc:.2f}%, DiffCurve={run_data['diffusion_curvature']:.4e}, ORCurve={run_data['ollivier_ricci']:.4e}, LossVar={run_data['loss_variance']:.4e}")
+            print(f"Result: Train Acc={train_acc:.2f}%, Test Acc={test_acc:.2f}%, DiffCurve={run_data.get('diffusion_curvature', float('nan')):.4e}, ORCurve={run_data.get('ollivier_ricci', float('nan')):.4e}, LossVar={run_data.get('loss_variance', float('nan')):.4e}")
 
     # Save full results
     with open(f'results/{results_filename}', 'w') as f:
         json.dump(results, f, indent=4)
         
     print(f"\nExperiments Complete. Results saved to results/{results_filename}")
-
-if __name__ == "__main__":
-    pass
-    # run_experiment(dataset='cifar10', epochs=20, seeds=[42])
