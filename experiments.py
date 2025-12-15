@@ -7,6 +7,7 @@ import json
 # Import your modules
 from loss_landscape_master.cifar10.models.resnet import resnet20, resnet32, resnet44, resnet56, resnet110
 from loss_landscape_master.cifar10.models.mnist import mlpmnist
+from loss_landscape_master.dataloader import load_dataset
 from data import get_data_loaders
 from train import train_model
 from utils import evaluate_model
@@ -18,7 +19,7 @@ def set_seed(seed=42):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def run_experiment(dataset='cifar10', network='resnet110', epochs=200, save_every=10, seeds=[36, 84, 68, 79, 11, 82, 77, 31, 26, 18], dropout_rates=[0.0, 0.1, 0.2, 0.3, 0.4], sampling_strategy='hyperspheres', alphas=[1., 3., 5., 7., 10., 13., 16., 20.], samples_per_scale=100, steps=21, range_limit=1.0, skip_curvature=False, results_filename='experiment_results.json'):
+def run_experiment(dataset='cifar10', network='resnet110', epochs=200, save_every=10, seeds=[36, 84, 68, 79, 11, 82, 77, 31, 26, 18], dropout_rates=[0.0, 0.1, 0.2, 0.3, 0.4], sampling_strategy='hyperspheres', alphas=[1., 3., 5., 7., 10., 13., 16., 20.], samples_per_scale=100, steps=21, range_limit=1.0, data_split=10, skip_curvature=False, results_filename='experiment_results.json'):
     """
     Runs the full experiment: 
     1. Loop over dropout rates.
@@ -105,9 +106,15 @@ def run_experiment(dataset='cifar10', network='resnet110', epochs=200, save_ever
                         device=device
                     )
                 elif sampling_strategy == 'filternorm':
+                    train_loader_split, _ = load_dataset(
+                        dataset=dataset,
+                        datapath=f'{dataset}/data',
+                        batch_size=128,
+                        data_split=data_split,
+                    )
                     samples = get_loss_samples_filternorm(
                         model,
-                        train_loader,
+                        train_loader_split,
                         criterion,
                         steps=steps,
                         range_limit=range_limit,
