@@ -25,6 +25,22 @@ def run_experiment(dataset='cifar10', network='resnet110', epochs=200, save_ever
     1. Loop over dropout rates.
     2. Loop over random seeds.
     3. Train -> Sample Curvature -> Save.
+
+    Parameters:
+    - dataset: str, dataset to use ('cifar10' or 'mnist')
+    - network: str, network architecture to use ('resnet20', 'resnet32', 'resnet44', 'resnet56', 'resnet110', 'mlpmnist')
+    - epochs: int, number of training epochs
+    - save_every: int, frequency of saving model checkpoints
+    - seeds: list of int, random seeds for experiments
+    - dropout_rates: list of float, dropout rates to test
+    - sampling_strategy: str, 'hyperspheres' or 'filternorm' for curvature sampling
+    - alphas: list of float, scales for hypersphere sampling (if using hyperspheres)
+    - samples_per_scale: int, number of samples per scale (if using hyperspheres)
+    - steps: int, number of steps for filternorm sampling (if using filternorm)
+    - range_limit: float, range limit for filternorm sampling (if using filternorm)
+    - data_split: int, data split for filternorm sampling (if using filternorm)
+    - skip_curvature: bool, if True, skip curvature sampling
+    - results_filename: str, filename to save the results JSON
     """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     

@@ -17,7 +17,7 @@ import evaluation
 def get_loss_samples_filternorm(net, dataloader, criterion, steps=21, range_limit=1.0, cuda=True):
     """
     Computes curvature on a 3D manifold (alpha, beta, loss) derived from a 
-    2D slice of the parameter space using Filter Normalization.
+    2D slice of the parameter space using Filter Normalization (Li et al., 2018).
     """
     net.to('cpu')
 
@@ -348,6 +348,10 @@ def compute_ollivier_ricci(P, D, num_neighbors=10):
     return ricci_sum / count if count > 0 else 0.0
 
 def compute_curvature(samples):
+    """
+    Computes curvature metrics from the sampled loss landscape.
+    Returns a dictionary with diffusion curvature, Ollivier-Ricci curvature, and loss variance.
+    """
     # 1. Build Graph
     P, D_dist, degrees = get_graph_operators(samples, mode='adaptive', alpha=1.0)
     
