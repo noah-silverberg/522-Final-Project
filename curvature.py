@@ -5,6 +5,63 @@ from utils import evaluate_model
 from scipy.spatial.distance import cdist
 import scipy.sparse as sp
 import ot
+import sys
+
+# Ensure we can import from the loss_landscape_master directory
+sys.path.append('loss_landscape_master') 
+import net_plotter
+import evaluation
+
+def get_loss_samples_filternorm(net, dataloader, criterion, steps=21, range_limit=1.0, cuda=True):
+    """
+    Computes curvature on a 3D manifold (alpha, beta, loss) derived from a 
+    2D slice of the parameter space using Filter Normalization.
+    """
+    
+    # 1. Setup Normalized Directions
+    # create_random_direction handles the 'filter' normalization automatically
+    d1 = net_plotter.create_random_direction(net, dir_type='weights', ignore='biasbn', norm='filter')
+    d2 = net_plotter.create_random_direction(net, dir_type='weights', ignore='biasbn', norm='filter')
+    directions = [d1, d2]
+
+    # 2. Define the Grid (The "Slice")
+    # We scan from -range to +range. 
+    # We ensure 0 (the original model) is included by using an odd number of steps.
+    alphas = np.linspace(-range_limit, range_limit, steps)
+    betas = np.linspace(-range_limit, range_limit, steps)
+    
+    # Save original weights to restore later
+    original_weights = net_plotter.get_weights(net)
+
+    print(f"Sampling {steps}x{steps} grid on 2D slice (Total {steps*steps} points)...")
+    
+    samples = []
+    
+    with torch.no_grad():
+        for alpha in alphas:
+            for beta in betas:
+                # 3. Update weights: w' = w + alpha*d1 + beta*d2
+                # net_plotter.set_weights handles the linear arithmetic for tensors
+                net_plotter.set_weights(net, original_weights, directions, step=(alpha, beta))
+                
+                # 4. Calculate Loss
+                # Note: evaluation.eval_loss is from the loss_landscape repo
+                loss, _ = evaluation.eval_loss(net, criterion, dataloader, cuda)
+                
+                # 5. Store Data for Curvature
+                # CRITICAL: We use [alpha, beta] as the "perturbation" vector.
+                # Your curvature.py will stack this with 'loss' to create a 3D point cloud.
+                # X = [alpha, beta, loss]
+                samples.append({
+                    'perturbation': np.array([alpha, beta]), 
+                    'loss': loss,
+                    'is_center': (alpha == 0 and beta == 0) # Tag the center for easy lookup
+                })
+
+    # Restore original weights so the model is unchanged
+    net_plotter.set_weights(net, original_weights)
+
+    return samples
 
 def vector_to_parameters(vec, parameters):
     """

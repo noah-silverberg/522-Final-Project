@@ -10,7 +10,7 @@ from loss_landscape_master.cifar10.models.mnist import mlpmnist
 from data import get_data_loaders
 from train import train_model
 from utils import evaluate_model
-from curvature import get_loss_samples, compute_curvature
+from curvature import get_loss_samples, compute_curvature, get_loss_samples_filternorm
 
 def set_seed(seed=42):
     torch.manual_seed(seed)
@@ -18,7 +18,7 @@ def set_seed(seed=42):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def run_experiment(dataset='cifar10', network='resnet110', epochs=200, save_every=10, seeds=[36, 84, 68, 79, 11, 82, 77, 31, 26, 18], dropout_rates=[0.0, 0.1, 0.2, 0.3, 0.4], alphas=[1., 3., 5., 7., 10., 13., 16., 20.], samples_per_scale=100, skip_curvature=False, results_filename='experiment_results.json'):
+def run_experiment(dataset='cifar10', network='resnet110', epochs=200, save_every=10, seeds=[36, 84, 68, 79, 11, 82, 77, 31, 26, 18], dropout_rates=[0.0, 0.1, 0.2, 0.3, 0.4], sampling_strategy='hyperspheres', alphas=[1., 3., 5., 7., 10., 13., 16., 20.], samples_per_scale=100, steps=21, range_limit=1.0, skip_curvature=False, results_filename='experiment_results.json'):
     """
     Runs the full experiment: 
     1. Loop over dropout rates.
@@ -94,16 +94,26 @@ def run_experiment(dataset='cifar10', network='resnet110', epochs=200, save_ever
             if not skip_curvature:
                 # Analyze Curvature
                 print("Sampling curvature (this may take a while)...")
-                # Note: We pass 'train_loader' to evaluate curvature on the training set landscape.
-                samples = get_loss_samples(
-                    model, 
-                    train_loader, 
-                    training_velocity=final_velocity,
-                    alphas=alphas, 
-                    samples_per_scale=samples_per_scale, 
-                    device=device
-                )
-                
+                if sampling_strategy == 'hyperspheres':
+                    # Note: We pass 'train_loader' to evaluate curvature on the training set landscape.
+                    samples = get_loss_samples(
+                        model, 
+                        train_loader, 
+                        training_velocity=final_velocity,
+                        alphas=alphas, 
+                        samples_per_scale=samples_per_scale, 
+                        device=device
+                    )
+                elif sampling_strategy == 'filternorm':
+                    samples = get_loss_samples_filternorm(
+                        model,
+                        train_loader,
+                        criterion,
+                        steps=steps,
+                        range_limit=range_limit,
+                        cuda=(device=='cuda')
+                    )
+            
                 curvature_metrics = compute_curvature(samples)
 
                 run_data.update({
